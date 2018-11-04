@@ -103,7 +103,7 @@ void hal_tick_init(void){
     // Start counting
     LPTMR_DRV_Start(LPTMR_INSTANCE);
 
-    SEGGER_RTT_printf(0, "\r\tStarted LPTMR\n");
+    // SEGGER_RTT_printf(0, "\r\tStarted LPTMR\n");
     
     // // hardware_init();
 

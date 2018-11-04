@@ -52,7 +52,7 @@
 
 #include "btstack_run_loop.h"
 #include "btstack_defines.h"
-#include "hal_led.h"
+// #include "hal_led.h"
 #include "btstack_config.h"
 
 // #include "led_counter.h"
@@ -79,11 +79,11 @@ static void heartbeat_handler(btstack_timer_source_t *ts){
 
     // increment counter
     char lineBuffer[30];
-    SEGGER_RTT_printf(0, "BTstack counter %04u\n\r", ++counter);
-    SEGGER_RTT_printf(0, "line buffer %s\n\r", lineBuffer);
+    // SEGGER_RTT_printf(0, "BTstack counter %04u\n\r", ++counter);
+    // SEGGER_RTT_printf(0, "line buffer %s\n\r", lineBuffer);
 
     // toggle LED
-    hal_led_toggle();
+    // hal_led_toggle();
 
     // re-register timer
     btstack_run_loop_set_timer(&heartbeat, HEARTBEAT_PERIOD_MS);
@@ -108,7 +108,7 @@ int btstack_main(int argc, const char * argv[]){
     btstack_run_loop_set_timer(&heartbeat, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(&heartbeat);
 
-    printf("Running...\n\r");
+    // printf("Running...\n\r");
     return 0;
 }
 /* LISTING_END */

@@ -33,21 +33,37 @@
 	LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 	ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 	POSSIBILITY OF SUCH DAMAGE.
+
 */
+// #define SEGGER_RTT_printf_ENABLE
+// #define SEGGER_RTT_WriteString_ENABLE //parital impliemtnt
+#define warp_i2c_ENABLE 	//TODO: check with psm
+#define warp_spi_ENABLE 	//TODO:
+#define warp_lpuart_ENABLE 	//TODO:
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "fsl_misc_utilities.h"
 #include "fsl_device_registers.h"
+
+#ifdef warp_i2c_ENABLE
 #include "fsl_i2c_master_driver.h"
+#endif
+#ifdef warp_spi_ENABLE
 #include "fsl_spi_master_driver.h"
+#endif
+#ifdef warp_lpuart_ENABLE
+#include "fsl_lpuart_driver.h"
+#endif
+
 #include "fsl_rtc_driver.h"
 #include "fsl_clock_manager.h"
 #include "fsl_power_manager.h"
 #include "fsl_mcglite_hal.h"
 #include "fsl_port_hal.h"
-#include "fsl_lpuart_driver.h"
+
 
 #include "gpio_pins.h"
 #include "SEGGER_RTT.h"
@@ -82,11 +98,20 @@
 // #include "btstack_main.h"
 
 
-#define					kWarpConstantStringI2cFailure		"\rI2C failed, reg 0x%02x, code %d\n"
-#define					kWarpConstantStringErrorInvalidVoltage	"\rInvalid supply voltage [%d] mV!"
-#define					kWarpConstantStringErrorSanity		"\rSanity Check Failed!"
+#ifdef FELIX
+void felix_pollSensor(const char *  tagString,
+		WarpStatus  (* readSensorRegisterFunction)(uint8_t deviceRegister),
+		volatile WarpI2CDeviceState *  i2cDeviceState,
+		uint16_t  sssupplyMillivolts,
+		uint16_t  *data,
+		uint16_t  dataSize);
 
+uint16_t felixDataBuffer[12];
+#endif
 
+#define kWarpConstantStringI2cFailure 			"\rI2C failed, reg 0x%02x, code %d\n"
+#define kWarpConstantStringErrorInvalidVoltage 	"\rInvalid supply voltage [%d] mV!"
+#define kWarpConstantStringErrorSanity 			"\rSanity Check Failed!"
 
 #ifdef WARP_BUILD_ENABLE_DEVADXL362
 volatile WarpSPIDeviceState			deviceADXL362State;
@@ -167,71 +192,62 @@ volatile lpuart_state_t 			lpuartState;
 /*
  *	TODO: move magic default numbers into constant definitions.
  */
-volatile uint32_t			gWarpI2cBaudRateKbps	= 1;
-volatile uint32_t			gWarpUartBaudRateKbps	= 1;
-volatile uint32_t			gWarpSpiBaudRateKbps	= 1;
-volatile uint32_t			gWarpSleeptimeSeconds	= 0;
+volatile uint32_t				gWarpI2cBaudRateKbps	= 1;
+volatile uint32_t				gWarpUartBaudRateKbps	= 1;
+volatile uint32_t				gWarpSpiBaudRateKbps	= 1;
+volatile uint32_t				gWarpSleeptimeSeconds	= 0;
 volatile WarpModeMask			gWarpMode		= kWarpModeDisableAdcOnSleep;
 
-
-
-void					sleepUntilReset(void);
-void					lowPowerPinStates(void);
-void					disableTPS82740A(void);
-void					disableTPS82740B(void);
-void					enableTPS82740A(uint16_t voltageMillivolts);
-void					enableTPS82740B(uint16_t voltageMillivolts);
-void					setTPS82740CommonControlLines(uint16_t voltageMillivolts);
-void					printPinDirections(void);
-void					dumpProcessorState(void);
-void					repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t baseAddress, 
-								uint16_t pullupValue, bool autoIncrement, int chunkReadsPerAddress, bool chatty,
-								int spinDelay, int repetitionsPerAddress, uint16_t sssupplyMillivolts,
-								uint16_t adaptiveSssupplyMaxMillivolts, uint8_t referenceByte);
-int						char2int(int character);
-void					enableSssupply(uint16_t voltageMillivolts);
-void					disableSssupply(void);
-void					activateAllLowPowerSensorModes(void);
-void					powerupAllSensors(void);
-uint8_t					readHexByte(void);
-int						read4digits(void);
-
-
+void sleepUntilReset(void);
+void lowPowerPinStates(void);
+void disableTPS82740A(void);
+void disableTPS82740B(void);
+void enableTPS82740A(uint16_t voltageMillivolts);
+void enableTPS82740B(uint16_t voltageMillivolts);
+void setTPS82740CommonControlLines(uint16_t voltageMillivolts);
+void printPinDirections(void);
+void dumpProcessorState(void);
+void repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t baseAddress,
+										   uint16_t pullupValue, bool autoIncrement, int chunkReadsPerAddress, bool chatty,
+										   int spinDelay, int repetitionsPerAddress, uint16_t sssupplyMillivolts,
+										   uint16_t adaptiveSssupplyMaxMillivolts, uint8_t referenceByte);
+int char2int(int character);
+void enableSssupply(uint16_t voltageMillivolts);
+void disableSssupply(void);
+void activateAllLowPowerSensorModes(void);
+void powerupAllSensors(void);
+uint8_t readHexByte(void);
+int read4digits(void);
 
 /*
  *	TODO: change the following to take byte arrays
  */
-WarpStatus				writeByteToI2cDeviceRegister(uint8_t i2cAddress, bool sendCommandByte, uint8_t commandByte, bool sendPayloadByte, uint8_t payloadByte);
-WarpStatus				writeBytesToSpi(uint8_t *  payloadBytes, int payloadLength);
+WarpStatus writeBytesToSpi(uint8_t *payloadBytes, int payloadLength);
+WarpStatus writeByteToI2cDeviceRegister(uint8_t i2cAddress, bool sendCommandByte, uint8_t commandByte, bool 										sendPayloadByte, uint8_t payloadByte);
 
-
-void					warpLowPowerSecondsSleep(uint32_t sleepSeconds, bool forceAllPinsIntoLowPowerState);
-
-
+void warpLowPowerSecondsSleep(uint32_t sleepSeconds, bool forceAllPinsIntoLowPowerState);
 
 /*
  *	From KSDK power_manager_demo.c <<BEGIN>>>
  */
 
-clock_manager_error_code_t clockManagerCallbackRoutine(clock_notify_struct_t *  notify, void *  callbackData);
+clock_manager_error_code_t clockManagerCallbackRoutine(clock_notify_struct_t *notify, void *callbackData);
 
 /*
  *	static clock callback table.
  */
-clock_manager_callback_user_config_t		clockManagerCallbackUserlevelStructure =
-									{
-										.callback	= clockManagerCallbackRoutine,
-										.callbackType	= kClockManagerCallbackBeforeAfter,
-										.callbackData	= NULL
-									};
+clock_manager_callback_user_config_t clockManagerCallbackUserlevelStructure =
+	{
+		.callback = clockManagerCallbackRoutine,
+		.callbackType = kClockManagerCallbackBeforeAfter,
+		.callbackData = NULL};
 
-static clock_manager_callback_user_config_t *	clockCallbackTable[] =
-									{
-										&clockManagerCallbackUserlevelStructure
-									};
+static clock_manager_callback_user_config_t *clockCallbackTable[] =
+	{
+		&clockManagerCallbackUserlevelStructure};
 
 clock_manager_error_code_t
-clockManagerCallbackRoutine(clock_notify_struct_t *  notify, void *  callbackData)
+clockManagerCallbackRoutine(clock_notify_struct_t *notify, void *callbackData)
 {
 	clock_manager_error_code_t result = kClockManagerSuccess;
 
@@ -244,17 +260,16 @@ clockManagerCallbackRoutine(clock_notify_struct_t *  notify, void *  callbackDat
 			break;
 		default:
 			result = kClockManagerError;
-		break;
+			break;
 	}
 
 	return result;
 }
 
-
 /*
  *	Override the RTC IRQ handler
  */
-void
+void 
 RTC_IRQHandler(void)
 {
 	if (RTC_DRV_IsAlarmPending(0))
@@ -266,7 +281,7 @@ RTC_IRQHandler(void)
 /*
  *	Override the RTC Second IRQ handler
  */
-void
+void 
 RTC_Seconds_IRQHandler(void)
 {
 	gWarpSleeptimeSeconds++;
@@ -275,11 +290,11 @@ RTC_Seconds_IRQHandler(void)
 /*
  *	Power manager user callback
  */
-power_manager_error_code_t callback0(power_manager_notify_struct_t *  notify,
-					power_manager_callback_data_t *  dataPtr)
+power_manager_error_code_t callback0(power_manager_notify_struct_t *notify,
+									 power_manager_callback_data_t *dataPtr)
 {
-	WarpPowerManagerCallbackStructure *		callbackUserData = (WarpPowerManagerCallbackStructure *) dataPtr;
-	power_manager_error_code_t			status = kPowerManagerError;
+	WarpPowerManagerCallbackStructure *callbackUserData = (WarpPowerManagerCallbackStructure *)dataPtr;
+	power_manager_error_code_t status = kPowerManagerError;
 
 	switch (notify->notifyType)
 	{
@@ -300,10 +315,7 @@ power_manager_error_code_t callback0(power_manager_notify_struct_t *  notify,
 /*
  *	From KSDK power_manager_demo.c <<END>>>
  */
-
-
-
-void
+void 
 sleepUntilReset(void)
 {
 	while (1)
@@ -318,7 +330,6 @@ sleepUntilReset(void)
 		warpLowPowerSecondsSleep(60, true /* forceAllPinsIntoLowPowerState */);
 	}
 }
-
 
 void
 enableLPUARTpins(void)
@@ -351,10 +362,8 @@ enableLPUARTpins(void)
 	lpuartUserConfig.stopBitCount = kLpuartOneStopBit;
 	lpuartUserConfig.bitCountPerChar = kLpuart8BitsPerChar;
 
-	LPUART_DRV_Init(0,(lpuart_state_t *)&lpuartState,(lpuart_user_config_t *)&lpuartUserConfig);
-
+	LPUART_DRV_Init(0, (lpuart_state_t *)&lpuartState, (lpuart_user_config_t *)&lpuartUserConfig);
 }
-
 
 void
 disableLPUARTpins(void)
@@ -1977,7 +1986,7 @@ main(void)
 			{
 				#ifdef BLE_ENABLED
 					
-					ble_writeMenu();
+					// ble_writeMenu();
 
 					key = SEGGER_RTT_WaitKey();
 
@@ -2002,7 +2011,7 @@ main(void)
 							enableLPUARTpins();
 							ble_setup();
 							ble_enable();
-							SEGGER_RTT_WriteString(0, "\r\t...DONE\n");
+							// SEGGER_RTT_WriteString(0, "\r\t...DONE\n");
 							// btstack_main();
 							#else 
 							SEGGER_RTT_WriteString(0, "\r\tPAN1326 Disabled. Cant turn on BLE... \n");
@@ -2011,19 +2020,19 @@ main(void)
 						}
 						case '5':
 						{
-							SEGGER_RTT_WriteString(0, "\r\t Setting Supply voltage \n");
+							// SEGGER_RTT_WriteString(0, "\r\t Setting Supply voltage \n");
 							// menuSupplyVoltage = 3000
 							break;
 						}
 						case '6':
 						{
-							SEGGER_RTT_WriteString(0, "\r\t Setting UART Baud rate \n");
+							// SEGGER_RTT_WriteString(0, "\r\t Setting UART Baud rate \n");
 							// gWarpUartBaudRateKbps = "0115";
 							break;
 						}
 						default:
 						{
-							SEGGER_RTT_WriteString(0, "\r\tInvalid selection!\n");
+							// SEGGER_RTT_WriteString(0, "\r\tInvalid selection!\n");
 						}
 					}
 				#else 	
@@ -3041,7 +3050,7 @@ activateAllLowPowerSensorModes(void)
 	#endif
 
 	/*
-	 *	BME680: TODO
+	 *	BME680: TODO:
 	 */
 
 
@@ -3126,7 +3135,8 @@ activateAllLowPowerSensorModes(void)
 
 		/* Initialise HCI */
 		/* enable data dump to stdout */
-		hci_dump_open(NULL, HCI_DUMP_STDOUT); //FIXME: route to segger_rtt printf
+
+		// hci_dump_open(NULL, HCI_DUMP_STDOUT); //FIXME: route to segger_rtt printf
 
 		hci_transport_t * ble_transportLayer = hci_transport_h4_instance(btstack_uart_block_embedded_instance());
 
@@ -3148,11 +3158,11 @@ activateAllLowPowerSensorModes(void)
 		enableLPUARTpins();
 		SEGGER_RTT_WriteString(0, "\r\t\t BT run loop execute... \n");
 
-		btstack_main(0, NULL);
+		// btstack_main(0, NULL);
 
-		btstack_run_loop_execute();
+		// btstack_run_loop_execute();
 
-		SEGGER_RTT_WriteString(0, "\r\t\t\t...DONE \n");	
+		// SEGGER_RTT_WriteString(0, "\r\t\t\t...DONE \n");	
 
 		/* make discoverable */
 		// gap_discoverable_control(1);
@@ -3160,7 +3170,7 @@ activateAllLowPowerSensorModes(void)
 		/* enable BLE advertiesments */
 		gap_advertisements_enable(1);
 
-		// TODO: impliment HCI_POWER_OFF/HCI_POWER_ON
+		// // TODO: impliment HCI_POWER_OFF/HCI_POWER_ON
 
 	}
 
@@ -3196,7 +3206,7 @@ activateAllLowPowerSensorModes(void)
 			SEGGER_RTT_WriteString(0, "PAN1326 Unavailable. Can't get device status\n");
 		#endif
 
-		SEGGER_RTT_WriteString(0, "\r\tSelect:\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\tSelect:\n");
 
 		#ifdef WARP_BUILD_ENABLE_DEVPAN1326 
 		SEGGER_RTT_WriteString(0, "\r\t- '0' Disable PAN1326C\n");

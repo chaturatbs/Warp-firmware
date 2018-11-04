@@ -114,6 +114,30 @@ ADD_EXECUTABLE(Warp
     "${ProjDirPath}/../../../../platform/startup/startup.h"
     "${ProjDirPath}/../../../../boards/Warp/gpio_pins.c"
     "${ProjDirPath}/../../../../boards/Warp/gpio_pins.h"
+   
+    "${ProjDirPath}/../../src/btstack/led_counter.c"                    #~4kb
+    # "${ProjDirPath}/../../src/btstack/hal_led.c" 			            #~0.2kb	  
+    
+    "${ProjDirPath}/../../src/btstack/btstack_linked_list.c"            #~0.3kb   
+    "${ProjDirPath}/../../src/btstack/btstack_memory.c"                 #~0.5kb  
+    "${ProjDirPath}/../../src/btstack/btstack_memory_pool.c"            #~0.2kb
+    "${ProjDirPath}/../../src/btstack/btstack_run_loop.c"               #~0.4kb
+    "${ProjDirPath}/../../src/btstack/btstack_run_loop_embedded.c"      #~0.8kb
+    
+    "${ProjDirPath}/../../src/btstack/hal_cpu.c"                        #~0.3kb 
+    "${ProjDirPath}/../../src/btstack/hal_tick.c"	                    #~0      
+    # "${ProjDirPath}/../../src/btstack/hci_dump.c"		                #~0
+    "${ProjDirPath}/../../src/btstack/btstack_util.c"			        #~0        
+	"${ProjDirPath}/../../src/btstack/btstack_chipset_cc256x.c"         #~5kB          
+	"${ProjDirPath}/../../src/btstack/cc2564cInit.c"                    #~5kB  
+    
+    "${ProjDirPath}/../../src/btstack/btstack_uart_block_embedded.c"    #~1kb
+    "${ProjDirPath}/../../src/btstack/hal_uart_dma.c"                   #~0.5kB   		 
+    "${ProjDirPath}/../../src/btstack/hci.c"			                #~12kB      		 
+    "${ProjDirPath}/../../src/btstack/ad_parser.c"			            #~0      		 
+    "${ProjDirPath}/../../src/btstack/hci_cmd.c"		                #~1kB          		 
+    "${ProjDirPath}/../../src/btstack/hci_transport_h4.c"               #~0.5kB             
+
 )
 SET_TARGET_PROPERTIES(Warp PROPERTIES OUTPUT_NAME "Warp.elf")
 
