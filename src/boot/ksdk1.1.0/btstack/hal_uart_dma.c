@@ -35,7 +35,7 @@ void hal_uart_dma_set_block_sent( void (*callback)(void)){
  */
 int  hal_uart_dma_set_baud(uint32_t baud){
 	SEGGER_RTT_WriteString(0, "\r BLE: hal_uart_dma_set_baud called\n");
-
+	return 0;
 }
 
 /**

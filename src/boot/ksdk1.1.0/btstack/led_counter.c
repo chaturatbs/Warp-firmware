@@ -62,7 +62,7 @@
 
 #define HEARTBEAT_PERIOD_MS 1000
 
-static int counter = 0;
+// static int counter = 0;
 static btstack_timer_source_t heartbeat;
     
 /* @section Periodic Timer Setup 
@@ -78,7 +78,7 @@ static void heartbeat_handler(btstack_timer_source_t *ts){
     UNUSED(ts);
 
     // increment counter
-    char lineBuffer[30];
+    // char lineBuffer[30];
     // SEGGER_RTT_printf(0, "BTstack counter %04u\n\r", ++counter);
     // SEGGER_RTT_printf(0, "line buffer %s\n\r", lineBuffer);
 
