@@ -37,9 +37,9 @@
 */
 // #define SEGGER_RTT_printf_ENABLE
 // #define SEGGER_RTT_WriteString_ENABLE //parital impliemtnt
-#define warp_i2c_ENABLE 	//TODO: check with psm
-#define warp_spi_ENABLE 	//TODO:
-#define warp_lpuart_ENABLE 	//TODO:
+#define WARP_BUILD_ENABLE_i2c 	//TODO: check with psm
+#define WARP_BUILD_ENABLE_spi 	//TODO:
+#define WARP_BUILD_ENABLE_lpuart 	//TODO:
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,13 +48,13 @@
 #include "fsl_misc_utilities.h"
 #include "fsl_device_registers.h"
 
-#ifdef warp_i2c_ENABLE
+#ifdef WARP_BUILD_ENABLE_i2c
 #include "fsl_i2c_master_driver.h"
 #endif
-#ifdef warp_spi_ENABLE
+#ifdef WARP_BUILD_ENABLE_spi
 #include "fsl_spi_master_driver.h"
 #endif
-#ifdef warp_lpuart_ENABLE
+#ifdef WARP_BUILD_ENABLE_lpuart
 #include "fsl_lpuart_driver.h"
 #endif
 
@@ -130,7 +130,6 @@ volatile WarpI2CDeviceState			deviceMMA8451QState;
 #ifdef WARP_BUILD_ENABLE_DEVLPS25H
 volatile WarpI2CDeviceState			deviceLPS25HState;
 #endif
-
 #ifdef WARP_BUILD_ENABLE_DEVHDC1000
 volatile WarpI2CDeviceState			deviceHDC1000State;
 #endif
@@ -168,15 +167,6 @@ volatile WarpI2CDeviceState			deviceAMG8834State;
 #endif
 
 #ifdef WARP_BUILD_ENABLE_DEVPAN1326
-volatile WarpUARTDeviceState		devicePAN1326BState;
-volatile WarpUARTDeviceState		devicePAN1323ETUState;
-#endif
-
-#ifdef WARP_BUILD_ENABLE_DEVAS7262
-volatile WarpI2CDeviceState			deviceAS7262State;
-#endif
-
-#ifdef WARP_BUILD_ENABLE_DEVAS7263
 volatile WarpI2CDeviceState			deviceAS7263State;
 #endif
 
@@ -347,11 +337,7 @@ enableLPUARTpins(void)
 	PORT_HAL_SetMuxMode(PORTB_BASE, 3, kPortMuxAlt3);
 	/*	Warp KL03_UART_HCI_RX	--> PTB4 (ALT3)	--> PAN1326 HCI_RX */
 	PORT_HAL_SetMuxMode(PORTB_BASE, 4, kPortMuxAlt3);
-
 	/* TODO: Partial Implementation */
-	/*	Warp PTA6 --> PAN1326 HCI_RTS */
-	/*	Warp PTA7 --> PAN1326 HCI_CTS */
-	#endif
 
 	/*
 	 *	Initialize LPUART0. See KSDK13APIRM.pdf section 40.4.3, page 1353
@@ -1379,7 +1365,7 @@ main(void)
 				SEGGER_RTT_WriteString(0, "\r\t- '5' MMA8451Q			(0x00--0x31): 1.95V -- 3.6V\n");
 				#else
 				SEGGER_RTT_WriteString(0, "\r\t- '5' MMA8451Q			(0x00--0x31): 1.95V -- 3.6V *UNAVAILABLE* \n");
-				#endif
+				#endif		
 
 				#ifdef WARP_BUILD_ENABLE_DEVLPS25H
 				SEGGER_RTT_WriteString(0, "\r\t- '6' LPS25H			(0x08--0x24): 1.7V  -- 3.6V\n");
@@ -1900,9 +1886,7 @@ main(void)
 				repetitions = read4digits();
 
 				if (key == 'l')
-				{
-				
-					
+				{	
 					#ifdef SEGGER_RTT_printf_ENABLE
 					SEGGER_RTT_printf(0, "\r\n\tSending %d repetitions of [0x%02x] on I2C, i2cPullupEnable=%d, SSSUPPLY=%dmV\n\n",
 						repetitions, outBuffer[0], menuI2cPullupValue, menuSupplyVoltage);
@@ -1914,7 +1898,6 @@ main(void)
 				}
 				else
 				{
-					
 					#ifdef SEGGER_RTT_printf_ENABLE
 					SEGGER_RTT_printf(0, "\r\n\tSending %d repetitions of [0x%02x] on SPI, SSSUPPLY=%dmV\n\n",
 						repetitions, outBuffer[0], menuSupplyVoltage);
@@ -2054,6 +2037,93 @@ main(void)
 				break;
 			}
 
+			#ifdef FELIX
+			case '#':
+			{
+				//simple confirmation process to ensure keypress wasnt accidental
+				SEGGER_RTT_WriteString(0, "\r\n\tProgramatic access requested... Please provide the correct key sequence to confirm... input \"x\" to exit back to main menu\n");
+				key = SEGGER_RTT_WaitKey();
+				if ((key != 'x') && (key == '9')) { 
+					SEGGER_RTT_WriteString(0, "\r\n\tRunning in program mode...\n");
+					menuSupplyVoltage = 3000;
+					// gWarpI2cBaudRateKbps = 5;
+					
+					#ifdef SEGGER_RTT_printf_ENABLE
+					SEGGER_RTT_printf(0, "\r\n\tOverride SSSUPPLY set to %d mV", menuSupplyVoltage);
+					SEGGER_RTT_printf(0, "\r\n\tI2C baud rate set to %d kb/s", gWarpI2cBaudRateKbps);
+					#endif
+
+					key = '0';
+					enableI2Cpins(menuI2cPullupValue);
+					
+
+					// by default fetch as7262
+					//FIXME: check device
+
+					do {
+						key = "";
+						#ifdef WARP_BUILD_ENABLE_devAS7263
+						felix_pollSensor("\r\nAS7262:",		/*	tagString			*/
+								&readSensorRegisterAS7262,	/*	readSensorRegisterFunction	*/
+								&deviceAS7262State,		/*	i2cDeviceState			*/
+								menuSupplyVoltage,
+								felixDataBuffer, 12);
+						#else 
+						SEGGER_RTT_WriteString(0, "\r\n\tAS7263 Unavailable\n");
+						#endif
+						
+						// #ifdef SEGGER_RTT_printf_ENABLE SEGGER_RTT_printf("\r\nAS7262:");
+
+						// #ifdef SEGGER_RTT_printf_ENABLE SEGGER_RTT_printf(0, "\r\nAS7262:%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n",
+						// 	 felixDataBuffer[0], felixDataBuffer[1], felixDataBuffer[2], felixDataBuffer[3], felixDataBuffer[4], felixDataBuffer[5], felixDataBuffer[6], felixDataBuffer[7], felixDataBuffer[8], felixDataBuffer[9], felixDataBuffer[10], felixDataBuffer[11]);
+
+						key = SEGGER_RTT_WaitKey();
+						// #ifdef SEGGER_RTT_printf_ENABLE SEGGER_RTT_printf(0, "\r\n\tkey = %c", key);
+
+					} while (key != '&');
+
+					SEGGER_RTT_WriteString(0, "progExit\n");
+
+					warpSetLowPowerMode(kWarpPowerModeVLPR, 0 /* sleep seconds : irrelevant here */);
+
+
+					disableI2Cpins();
+
+					// loopForSensor(	"\r\nAS7262:\n\r",		/*	tagString			*/
+					// 		&readSensorRegisterAS7262,	/*	readSensorRegisterFunction	*/
+					// 		&deviceAS7262State,		/*	i2cDeviceState			*/
+					// 		NULL,				/*	spiDeviceState			*/
+					// 		baseAddress,			/*	baseAddress			*/
+					// 		0x00,				/*	minAddress			*/
+					// 		0x2B,				/*	maxAddress			*/
+					// 		repetitionsPerAddress,		/*	repetitionsPerAddress		*/
+					// 		chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
+					// 		spinDelay,			/*	spinDelay			*/
+					// 		autoIncrement,			/*	autoIncrement			*/
+					// 		sssupplyMillivolts,		/*	sssupplyMillivolts		*/
+					// 		referenceByte,			/*	referenceByte			*/
+					// 		adaptiveSssupplyMaxMillivolts,	/*	adaptiveSssupplyMaxMillivolts	*/
+					// 		chatty				/*	chatty				*/
+					// 		);
+
+					// repeatRegisterReadForDeviceAndAddress(kWarpSensorAS7262 			/*warpSensorDevice*/, 
+					// 		menuRegisterAddress /*baseAddress */,
+					// 		menuI2cPullupValue,
+					// 		autoIncrement /*autoIncrement*/,
+					// 		chunkReadsPerAddress,
+					// 		chatty,
+					// 		spinDelay,
+					// 		repetitionsPerAddress,
+					// 		menuSupplyVoltage,
+					// 		adaptiveSssupplyMaxMillivolts,
+					// 		referenceByte
+					// 		);
+
+				}
+				break;
+			}
+			#endif
+
 			/*
 			 *	Ignore naked returns.
 			 */
@@ -2155,7 +2225,7 @@ loopForSensor(	const char *  tagString,
 				LedOffAS7262();
 			}
 
-			SEGGER_RTT_WriteString(0, "\r\n\t\t reading addresses");
+			// SEGGER_RTT_WriteString(0, "\r\n\t\t reading addresses");
 			status = readSensorRegisterFunction(address+j);
 			
 			if (status == kWarpStatusOK)
@@ -2295,11 +2365,7 @@ repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t
 			#ifdef WARP_BUILD_ENABLE_DEVADXL362
 			loopForSensor(	"\r\nADXL362:\n\r",		/*	tagString			*/
 					&readSensorRegisterADXL362,	/*	readSensorRegisterFunction	*/
-					NULL,				/*	i2cDeviceState			*/
 					&deviceADXL362State,		/*	spiDeviceState			*/
-					baseAddress,			/*	baseAddress			*/
-					0x00,				/*	minAddress			*/
-					0x2E,				/*	maxAddress			*/
 					repetitionsPerAddress,		/*	repetitionsPerAddress		*/
 					chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
 					spinDelay,			/*	spinDelay			*/
@@ -2914,7 +2980,7 @@ powerupAllSensors(void)
 		#endif
 	}
 	#else
-		SEGGER_RTT_WriteString(0, "\r\tPowerup command failed. BMX055 disabled \n");
+		SEGGER_RTT_WriteString(0, "\r\tERROR! - BMX055 disabled \n");
 	#endif
 }
 
@@ -2954,7 +3020,7 @@ activateAllLowPowerSensorModes(void)
 		#endif
 	}
 	#else
-		SEGGER_RTT_WriteString(0, "\r\tPowerdown command abandoned. BMX055 disabled\n");
+		SEGGER_RTT_WriteString(0, "\r\tERROR! - BMX055 disabled\n");
 	#endif
 
 
@@ -2977,7 +3043,7 @@ activateAllLowPowerSensorModes(void)
 		#endif
 	}
 	#else
-		SEGGER_RTT_WriteString(0, "\r\tPowerdown command abandoned. BMX055 disabled\n");
+		SEGGER_RTT_WriteString(0, "\r\tERROR! - BMX055 disabled\n");
 	#endif
 	
 
@@ -3046,7 +3112,7 @@ activateAllLowPowerSensorModes(void)
 		#endif
 	}
 	#else
-		SEGGER_RTT_WriteString(0, "\r\tPowerdown command abandoned. L3GD20H disabled\n");
+		SEGGER_RTT_WriteString(0, "\r\tERROR! - L3GD20H disabled\n");
 	#endif
 
 	/*
@@ -3073,7 +3139,7 @@ activateAllLowPowerSensorModes(void)
 		#endif
 	}
 	#else
-	SEGGER_RTT_WriteString(0, "\r\tPowerdown command abandoned. TCS34725 disabled\n");
+	SEGGER_RTT_WriteString(0, "\r\tERROR! -  TCS34725 disabled\n");
 	#endif
 
 	/*
@@ -3174,9 +3240,218 @@ activateAllLowPowerSensorModes(void)
 
 	}
 
-	void ble_disable(void)
-	{
-		disableLPUARTpins();
+	void ble_disable(void){
+
+		// disableLPUARTpins();
+
+		// //disable discoverablility
+		// // gap_discoverable_control(0);
+
+		// //disable BLE advertiesments
+		// gap_advertisements_enable(0);
+
+	}
+
+	// void
+	// ble_writeMenu(void) {
+
+	// 	int modADR = 5123; 
+
+	// 	SEGGER_RTT_WriteString(0, "\r\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t\tBluetooth Status \n");
+	// 	#ifdef WARP_BUILD_ENABLE_devPAN1326 
+	// 		#ifdef SEGGER_RTT_printf_ENABLE
+	// 		SEGGER_RTT_printf(0, "\r\t Bluetooth module = some mod, \tBluetooth MAC Address=%dmV\n", modADR);
+	// 		SEGGER_RTT_printf(0, "\r\t Bluetooth Powwer= NULL,\tBluetooth Discovery=NULL\n");
+	// 		SEGGER_RTT_printf(0, "\r\t BT status - %d \n", devicePAN1326BState.deviceStatus);
+	// 		SEGGER_RTT_printf(0, "\r\t kWarpPinPAN1326_nSHUTD:%d\n", GPIO_DRV_GetPinDir(kWarpPinPAN1326_nSHUTD)); 
+	// 		// #elif SEGGER_RTT_WriteString_ENABLE
+	// 		#else
+	// 		SEGGER_RTT_WriteString(0, "Partial output. Printf disabled :(\n");
+	// 		#endif
+	// 	#else
+	// 		SEGGER_RTT_WriteString(0, "PAN1326 Unavailable. Can't get device status\n");
+	// 	#endif
+
+	// 	SEGGER_RTT_WriteString(0, "\r\tSelect:\n");
+
+	// 	#ifdef WARP_BUILD_ENABLE_devPAN1326 
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '0' Disable PAN1326C\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '1' Enable PAN1326C\n");
+	// 	#else
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '0' Disable PAN1326C *UNAVAILABLE*\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '1' Enable PAN1326C *UNAVAILABLE*\n");
+	// 	#endif
+
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '2' Toggle Bluetooth discovery \n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '3' Scan for BT devices\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '5' Set Supply voltage\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\t- '6' Set UART baud rate\n");
+
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '3' BMX055gyro		(0x00--0x3F): 2.4V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '4' BMX055mag			(0x40--0x52): 2.4V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '5' MMA8451Q			(0x00--0x31): 1.95V -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '6' LPS25H			(0x08--0x24): 1.7V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '7' MAG3110			(0x00--0x11): 1.95V -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '8' HDC1000			(0x00--0x1F): 3.0V  -- 5.0V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- '9' SI7021			(0x00--0x0F): 1.9V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'a' L3GD20H			(0x0F--0x39): 2.2V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'b' BME680			(0xAA--0xF8): 1.6V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'd' TCS34725			(0x00--0x1D): 2.7V  -- 3.3V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'e' SI4705			(n/a):        2.7V  -- 5.5V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'f' PAN1326			(n/a)\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'g' CCS811			(0x00--0xFF): 1.8V  -- 3.6V\n");
+	// 	// SEGGER_RTT_WriteString(0, "\r\t- 'h' AMG8834			(0x00--?): ?V  -- ?V\n");
+	// 	SEGGER_RTT_WriteString(0, "\r\tEnter selection> ");
+	// }
+
+#endif
+
+#ifdef FELIX
+
+void felix_init(char voltage){
+	// menuSupplyVoltage = voltage;
+
+	// #ifdef SEGGER_RTT_printf_ENABLE 
+	// SEGGER_RTT_printf(0, "\r\n\tOverride SSSUPPLY set to %d mV", menuSupplyVoltage);
+	// #endif
+
+	//Turn on LED to test if this works. 3 blinks 
+	writeByteToI2cDeviceRegister(
+		deviceAS7262State.i2cAddress,
+		true, 0x00,
+		false, 0);
+
+	//set speed
+	writeByteToI2cDeviceRegister(
+		deviceAS7262State.i2cAddress,
+		true, 0x00,
+		false, 0);
+
+
+}
+
+void felix_pollSensor(const char *  tagString,
+		WarpStatus  (* readSensorRegisterFunction)(uint8_t deviceRegister),
+		volatile WarpI2CDeviceState *  i2cDeviceState,
+		uint16_t  sssupplyMillivolts,
+		uint16_t *data,
+		uint16_t dataSize)
+{
+
+	uint8_t  baseAddress = 0x08;
+	uint8_t  minAddress = 0x08;
+	uint8_t  maxAddress = 0x13;
+
+	// uint8_t  baseAddress = 0x00;
+	// uint8_t  minAddress = 0x00;
+	// uint8_t  maxAddress = 0x2B;
+
+	int  spinDelay = 0;
+	int  repetitionsPerAddress = 0;
+	int  chunkReadsPerAddress = 1;
+
+	bool  autoIncrement = 1;
+	uint8_t  referenceByte = 0;
+	uint16_t adaptiveSssupplyMaxMillivolts = 0;
+	bool chatty = 1;
+	bool spiDeviceState = 0;
+	uint8_t count = 0;
+
+#ifndef WARP_FRDMKL03
+	WarpStatus		status;
+	uint8_t			address = min(minAddress, baseAddress);
+	int				readCount = repetitionsPerAddress + 1;
+	int				nSuccesses = 0;
+	int				nFailures = 0;
+	int				nCorrects = 0;
+	int				nBadCommands = 0;
+	uint16_t		actualSssupplyMillivolts = sssupplyMillivolts;
+	uint16_t		voltageTrace[readCount];
+
+	bool 		LEDAS7262 = 1;
+
+	// if (	(!spiDeviceState && !i2cDeviceState) ||
+	// 	(spiDeviceState && i2cDeviceState) )
+	// {
+	// 		#ifdef SEGGER_RTT_printf_ENABLE 
+	//		SEGGER_RTT_printf(0, RTT_CTRL_RESET RTT_CTRL_BG_BRIGHT_YELLOW RTT_CTRL_TEXT_BRIGHT_WHITE kWarpConstantStringErrorSanity RTT_CTRL_RESET "\n");
+	//		#endif
+	// }
+
+
+	memset(voltageTrace, 0, readCount*sizeof(uint16_t));
+	enableSssupply(actualSssupplyMillivolts);
+	OSA_TimeDelay(100);
+	
+	if (LEDAS7262 == 1) 
+	{	
+		// SEGGER_RTT_WriteString(0, "\t\t LED Enabled");
+		LEDonAS7262(); //returns kwarpStatus if needed
+	} else {
+		// SEGGER_RTT_WriteString(0, "\t\t LED Disabled");
+		LEDoffAS7262();
+	}
+
+	// SEGGER_RTT_WriteString(0, tagString);
+	SEGGER_RTT_printf(0, tagString);
+
+	while ((address <= maxAddress) && autoIncrement)
+	{ 
+		SEGGER_RTT_WriteString(0, ",");
+
+		for (int i = 0; i < readCount; i++) for (int j = 0; j < chunkReadsPerAddress; j++)
+		{
+			voltageTrace[i] = actualSssupplyMillivolts;
+			status = readSensorRegisterFunction(address+j);
+			if (status == kWarpStatusOK)
+			{
+				nSuccesses++;
+				if (actualSssupplyMillivolts > sssupplyMillivolts)
+				{
+					actualSssupplyMillivolts -= 100;
+					enableSssupply(actualSssupplyMillivolts);
+				}
+
+				// if (spiDeviceState)
+				// {
+				// 	if (referenceByte == spiDeviceState->spiSinkBuffer[2])
+				// 	{
+				// 		nCorrects++;
+				// 	}
+
+				// 	if (chatty)
+				// 	{
+				// 		#ifdef SEGGER_RTT_printf_ENABLE 
+				//		SEGGER_RTT_printf(0, "\r0x%02x --> [0x%02x 0x%02x 0x%02x]\n",
+				// 			address+j,
+				// 			spiDeviceState->spiSinkBuffer[0],
+				// 			spiDeviceState->spiSinkBuffer[1],
+				// 			spiDeviceState->spiSinkBuffer[2]);
+				//		#endif
+				// 	}
+				// }
+				// else
+				// {
+				if (referenceByte == i2cDeviceState->i2cBuffer[0])
+				{
+					nCorrects++;
+				}
+
+				if (chatty)
+				{
+					SEGGER_RTT_printf(0, "%02x",
+						i2cDeviceState->i2cBuffer[0]);
+				}
+				// data[i] = i2cDeviceState->i2cBuffer[0];
+
+				// }
+			}
+			else if (status == kWarpStatusDeviceCommunicationFailed)
+			{
+				data[i] = 0;
+
+				SEGGER_RTT_WriteString(0, "-");
 
 		/* disable discoverablility */
 		// gap_discoverable_control(0);
