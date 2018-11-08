@@ -3471,50 +3471,10 @@ void felix_pollSensor(const char *  tagString,
 				data[i] = 0;
 
 				SEGGER_RTT_WriteString(0, "-");
-
-		/* disable discoverablility */
-		// gap_discoverable_control(0);
-
-		/* disable BLE advertiesments */
-		gap_advertisements_enable(0);
-
-	}
-
-	void
-	ble_writeMenu(void) 
-	{
-		int modADR = 5123; 
-
-		SEGGER_RTT_WriteString(0, "\r\n");
-		SEGGER_RTT_WriteString(0, "\r\t\tBluetooth Status \n");
-		#ifdef WARP_BUILD_ENABLE_DEVPAN1326 
-			#ifdef SEGGER_RTT_printf_ENABLE
-			SEGGER_RTT_printf(0, "\r\t Bluetooth module = some mod, \tBluetooth MAC Address=%dmV\n", modADR);
-			SEGGER_RTT_printf(0, "\r\t Bluetooth Powwer= NULL,\tBluetooth Discovery=NULL\n");
-			SEGGER_RTT_printf(0, "\r\t BT status - %d \n", devicePAN1326BState.deviceStatus);
-			SEGGER_RTT_printf(0, "\r\t kWarpPinPAN1326_nSHUTD:%d\n", GPIO_DRV_GetPinDir(kWarpPinPAN1326_nSHUTD)); 
-			#else
-			SEGGER_RTT_WriteString(0, "Partial output. Printf disabled :(\n");
-			#endif
-		#else
-			SEGGER_RTT_WriteString(0, "PAN1326 Unavailable. Can't get device status\n");
-		#endif
-
-	// 	SEGGER_RTT_WriteString(0, "\r\tSelect:\n");
-
-		#ifdef WARP_BUILD_ENABLE_DEVPAN1326 
-		SEGGER_RTT_WriteString(0, "\r\t- '0' Disable PAN1326C\n");
-		SEGGER_RTT_WriteString(0, "\r\t- '1' Enable PAN1326C\n");
-		#else
-		SEGGER_RTT_WriteString(0, "\r\t- '0' Disable PAN1326C *UNAVAILABLE*\n");
-		SEGGER_RTT_WriteString(0, "\r\t- '1' Enable PAN1326C *UNAVAILABLE*\n");
-		#endif
-
-		SEGGER_RTT_WriteString(0, "\r\t- '2' Toggle Bluetooth discovery \n");
-		SEGGER_RTT_WriteString(0, "\r\t- '3' Scan for BT devices\n");
-		SEGGER_RTT_WriteString(0, "\r\t- '5' Set Supply voltage\n");
-		SEGGER_RTT_WriteString(0, "\r\t- '6' Set UART baud rate\n");
-		SEGGER_RTT_WriteString(0, "\r\tEnter selection> ");
+			}
+		}
 	}
 #endif
+}
+
 #endif
