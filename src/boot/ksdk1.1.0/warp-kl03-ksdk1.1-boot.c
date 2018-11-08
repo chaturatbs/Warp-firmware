@@ -97,6 +97,12 @@
 */
 #include "btstack_main.h"
 
+/*
+*	FLIX includes 
+*	Note - felix functions arent bound by global printf disable 
+*/
+// #define FELIX
+
 
 #ifdef FELIX
 void felix_pollSensor(const char *  tagString,
