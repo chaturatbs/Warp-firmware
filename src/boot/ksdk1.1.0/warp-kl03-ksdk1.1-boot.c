@@ -72,7 +72,7 @@
 #include "devPAN1326.h"
 #include "devAS7262.h"
 // #include "devAS7263.h"
-// #define SEGGER_RTT_printf_ENABLE
+#define SEGGER_RTT_printf_ENABLE
 // #define SEGGER_RTT_WriteString_ENABLE //parital impliemtnt
 
 
@@ -80,14 +80,14 @@
 /*
 *	BTstack includes
 */
-#include "btstack_main.h"
+// #include "btstack_main.h"
 
 
 /*
 *	ELIX includes 
 *	Note - felix functions arent bound by global printf disable 
 */
-// #define FELIX
+#define FELIX
 
 
 #ifdef FELIX
@@ -2098,14 +2098,14 @@ main(void)
 
 					do {
 						key = "";
-						#ifdef warp_devAS7263_ENABLE
+						#ifdef warp_devAS7262_ENABLE
 						felix_pollSensor("\r\nAS7262:",		/*	tagString			*/
 								&readSensorRegisterAS7262,	/*	readSensorRegisterFunction	*/
 								&deviceAS7262State,		/*	i2cDeviceState			*/
 								menuSupplyVoltage,
 								felixDataBuffer, 12);
 						#else 
-						SEGGER_RTT_WriteString(0, "\r\n\tAS7263 Unavailable\n");
+						SEGGER_RTT_WriteString(0, "\r\n\tAS7262 Unavailable\n");
 						#endif
 						
 						// #ifdef SEGGER_RTT_printf_ENABLE SEGGER_RTT_printf("\r\nAS7262:");
@@ -3580,4 +3580,5 @@ void felix_dumpMeasurements(){
 		SEGGER_RTT_WriteString(0, "\r\t\t MEASEUREMENTS \n");
 }
 
+#endif
 #endif
