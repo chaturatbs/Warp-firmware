@@ -95,13 +95,13 @@
 /*
 *	BTstack includes
 */
-#include "btstack_main.h"
+// #include "btstack_main.h"
 
 /*
 *	FLIX includes 
 *	Note - felix functions arent bound by global printf disable 
 */
-// #define FELIX
+#define FELIX
 
 
 #ifdef FELIX
@@ -2084,7 +2084,7 @@ main(void)
 								menuSupplyVoltage,
 								felixDataBuffer, 12);
 						#else 
-						SEGGER_RTT_WriteString(0, "\r\n\tAS7263 Unavailable\n");
+						SEGGER_RTT_WriteString(0, "\r\n\tAS7262 Unavailable\n");
 						#endif
 						
 						// #ifdef SEGGER_RTT_printf_ENABLE SEGGER_RTT_printf("\r\nAS7262:");
