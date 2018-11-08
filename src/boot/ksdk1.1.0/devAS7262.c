@@ -57,8 +57,8 @@ extern volatile WarpI2CDeviceState	deviceAS7262State;
 extern volatile uint32_t		gWarpI2cBaudRateKbps;
 
 /*Public functions for toggling LED */
-WarpStatus LedOnAS7262(void);
-WarpStatus LedOffAS7262(void);
+WarpStatus LEDonAS7262(void);
+WarpStatus LEDoffAS7262(void);
 
 
 void
@@ -164,7 +164,7 @@ readSensorRegisterAS7262(uint8_t deviceRegister)
 
 
 WarpStatus
-LedOnAS7262(void) {
+LEDonAS7262(void) {
 	i2c_status_t	returnValue;
 	uint8_t		cmdBuf_LEDCTRL[2]	= {kWarpI2C_AS726x_SLAVE_WRITE_REG, 0x87};
 	uint8_t		cmdBuf_LEDON[2]		= {kWarpI2C_AS726x_SLAVE_WRITE_REG, 0x1B};
@@ -215,7 +215,7 @@ LedOnAS7262(void) {
 }
 
 WarpStatus
-LedOffAS7262(void) {
+LEDoffAS7262(void) {
 
 	i2c_status_t	returnValue;
 
