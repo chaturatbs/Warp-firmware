@@ -166,8 +166,16 @@ volatile WarpI2CDeviceState			deviceCCS811State;
 volatile WarpI2CDeviceState			deviceAMG8834State;
 #endif
 
-#ifdef WARP_BUILD_ENABLE_DEVPAN1326
+#ifdef WARP_BUILD_ENABLE_DEVAS7262
+volatile WarpI2CDeviceState			deviceAS7262State;
+#endif
+
+#ifdef WARP_BUILD_ENABLE_DEVAS7263
 volatile WarpI2CDeviceState			deviceAS7263State;
+#endif
+
+#ifdef WARP_BUILD_ENABLE_DEVPAN1326
+volatile WarpI2CDeviceState			devicePAN1326BState;
 #endif
 
 /*
@@ -337,6 +345,7 @@ enableLPUARTpins(void)
 	PORT_HAL_SetMuxMode(PORTB_BASE, 3, kPortMuxAlt3);
 	/*	Warp KL03_UART_HCI_RX	--> PTB4 (ALT3)	--> PAN1326 HCI_RX */
 	PORT_HAL_SetMuxMode(PORTB_BASE, 4, kPortMuxAlt3);
+	#endif
 	/* TODO: Partial Implementation */
 
 	/*
@@ -2365,7 +2374,11 @@ repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t
 			#ifdef WARP_BUILD_ENABLE_DEVADXL362
 			loopForSensor(	"\r\nADXL362:\n\r",		/*	tagString			*/
 					&readSensorRegisterADXL362,	/*	readSensorRegisterFunction	*/
+					NULL,				/*	i2cDeviceState			*/
 					&deviceADXL362State,		/*	spiDeviceState			*/
+					baseAddress,			/*	baseAddress			*/
+					0x00,				/*	minAddress			*/
+					0x2E,				/*	maxAddress			*/
 					repetitionsPerAddress,		/*	repetitionsPerAddress		*/
 					chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
 					spinDelay,			/*	spinDelay			*/
@@ -3497,4 +3510,5 @@ void felix_pollSensor(const char *  tagString,
 		SEGGER_RTT_WriteString(0, "\r\t- '6' Set UART baud rate\n");
 		SEGGER_RTT_WriteString(0, "\r\tEnter selection> ");
 	}
+#endif
 #endif
