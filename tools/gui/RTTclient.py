@@ -61,7 +61,7 @@ class WarpConnectorClass(object):
 		uInput = ""
 
 		while self._running:
-			self.logger.error("# - waiting for data")
+			self.logger.debug("# - waiting for data")
 			data = self.warpSocket.recv(1024)
 			if not data:
 				break
@@ -100,7 +100,7 @@ class WarpConnectorClass(object):
 						warpAtMenu.clear()
 						self.warpSocket.send(uInput.encode('ascii'))
 						self.lastSend = uInput
-				
+
 				if (self.progRead and (self.readCount < self.sampleLimit)):
 					reAS7262 = re.search(r'AS7262:', data.decode('ascii'))
 					if (reAS7262 != None):
@@ -117,7 +117,7 @@ class WarpConnectorClass(object):
 							self.tempStringBuffer += self.recvdData.decode('ascii')
 							self.recvdData = self.warpSocket.recv(1)
 
-						print("data = ", self.tempStringBuffer, " size = ", len(self.tempStringBuffer))
+						self.logger.debug("data = %s size = %d", self.tempStringBuffer, len(self.tempStringBuffer))
 
 						if len(self.tempStringBuffer) == 35:
 							tempDataList = self.tempStringBuffer.split(',')
@@ -129,14 +129,14 @@ class WarpConnectorClass(object):
 
 								except Exception as e:
 									self.logger.error("Error - %s", e)
-						
+
 						self.warpSocket.send('~'.encode('ascii'))
 						self.lastSend = '~'
 						self.tempStringBuffer = ""
 
 					if dataReady.is_set():
 						self.readCount += 1
-						self.logger.info("Sample : %d - sending data = %s", self.readCount, self.dataBuffer)
+						self.logger.info("AS7262 Sample : %d - sending data = %s", self.readCount, self.dataBuffer)
 						try:
 							dataQueue.put(self.dataBuffer)
 							# writeData(self.dataBuffer) ######
@@ -144,10 +144,8 @@ class WarpConnectorClass(object):
 							self.logger.error("Error - %s", e)
 						dataReady.clear()
 
-				# print("self.readCount  = ", self.readCount)
-
 				if (self.readCount >= self.sampleLimit):
-					self.logger.warn("Read limit reached")
+					self.logger.debug("Read limit reached")
 					self.exitProgMode = True
 					self.autoReadEnabled = False
 					self.progRead = False
@@ -165,25 +163,34 @@ class WarpConnectorClass(object):
 
 
 
-class UIConnectorClass(object):
+class DataCollectorClass(object):
+	logToFIle = True
+	dataFilePrefix = "temp"
+
 	def __init__(self): #thread initialisation
 		self._running = True
+		self.dataFileName = self.dataFilePrefix + str(time.time()) + '.csv'
 
 	def terminate(self):
 		self._running = False
 
-	def run(self, dataQueue, dataReady):
+	def run(self, dataQueue, dataReady, logDataToFile, logDataToUI):
 		# uiCon = serial.Serial('COM7', 19200)
 		logger = mp.get_logger()
 		
 		while self._running:
 			try:
 				d = dataQueue.get()
-				logger.warn("Data Recieved = %s", d)
-
+				if logDataToFile:
+					with open(self.dataFileName, 'a', newline='') as dataFile:
+						spamWrite = csv.writer(dataFile, quotechar='|', quoting=csv.QUOTE_MINIMAL)
+						spamWrite.writerow([time.time()] + d)
+						
+				if logDataToUI:
+					pass
+				
 			except Exception as e:
 				logger.error("Error - %s", e)
-
 
 	def writeData(self, dataList):
 		self.uiCon.write("#".encode('ascii'))  # 0
@@ -199,13 +206,15 @@ class UIConnectorClass(object):
 		self.uiCon.write(str(dataList[5]).encode('ascii'))             #   r
 		self.uiCon.write("\n".encode('ascii'))
 
-class sensorCharacterisationClass(UIConnectorClass):
 
-	dataFileName = "jason.csv"
+#WIP FAO-JASON
+class sensorCharacterisationClass(DataCollectorClass):
+
+	dataFileName = "data.csv"
 
 	def run(self, dataQueue, dataReady):
 		logger = mp.get_logger()
-		
+
 		while self._running:
 			try:
 				d = dataQueue.get()
@@ -217,14 +226,13 @@ class sensorCharacterisationClass(UIConnectorClass):
 				logger.error("Error - %s", e)
 
 
-	
-
-
 if __name__ == "__main__":
 
 	# warpAtMenu = False
 	# self.progRead = False
 	terminateFlag = False
+	logDataToFile = True
+	logDataToUI = False
 	
 	mpManager = mp.Manager()
 	mpLock = mp.Lock()
@@ -233,7 +241,7 @@ if __name__ == "__main__":
 
 	mp.log_to_stderr()
 	logger = mp.get_logger()
-	logger.setLevel(logging.DEBUG)
+	logger.setLevel(logging.INFO)
 
 	warpAtMenu = mp.Event()
 	warpDataReady = mp.Event()
@@ -245,21 +253,13 @@ if __name__ == "__main__":
 	uInputQueue = mp.Queue()
 
 	warpConnectorInstance = WarpConnectorClass()
-	# uiConnectorInstance = UIConnectorClass() 
-	jsonInstance = sensorCharacterisationClass() 
-
+	dataCollectorInstance = DataCollectorClass()
 
 	warpConnectorProcess = mp.Process(target = warpConnectorInstance.run, args=(warpAtMenu,dataQueueToUI, warpDataReady, uInputQueue),name="Warp")
+	dataCollectorProcess = mp.Process(target = dataCollectorInstance.run, args=(dataQueueToUI, warpDataReady, logDataToFile, logDataToUI),name="UI")
 	
-	# uiConnectorProcess = mp.Process(target = uiConnectorInstance.run, args=(dataQueueToUI, warpDataReady),name="UI")
-	
-	jsonProcess = mp.Process(target = jsonInstance.run, args=(dataQueueToUI, warpDataReady),name="jason")
-
-	# uiConnectorProcess.start()
-	# processList.append(uiConnectorProcess)
-
-	jsonProcess.start()
-	processList.append(jsonProcess)
+	dataCollectorProcess.start()
+	processList.append(dataCollectorProcess)
 
 	warpConnectorProcess.start()
 	processList.append(warpConnectorProcess)
