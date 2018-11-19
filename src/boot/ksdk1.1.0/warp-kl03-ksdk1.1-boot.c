@@ -3487,6 +3487,9 @@ void felix_pollSensor(const char *  tagString,
 		// SEGGER_RTT_WriteString(0, "\t\t LED Enabled");
 		LEDoffAS7262();
 	}
+
+	SEGGER_RTT_WriteString(0, "\n");
+
 #endif
 }
 
