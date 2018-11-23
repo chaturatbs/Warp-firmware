@@ -35,9 +35,9 @@
 	POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define WARP_BUILD_ENABLE_i2c 	//TODO: check with psm
-#define WARP_BUILD_ENABLE_spi 	//TODO:
-#define WARP_BUILD_ENABLE_lpuart 	//TODO:
+#define WARP_BUILD_ENABLE_I2C 	//TODO: check with psm
+#define WARP_BUILD_ENABLE_SPI 	//TODO:
+#define WARP_BUILD_ENABLE_LPUART 	//TODO:
 
 #include <stdio.h>
 #include <stdlib.h>
