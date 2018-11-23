@@ -2931,7 +2931,6 @@ activateAllLowPowerSensorModes(void)
 	 */
 
 
-
 	/*
 	 *	MMA8451Q: See 0x2B: CTRL_REG2 System Control 2 Register (page 43).
 	 *
