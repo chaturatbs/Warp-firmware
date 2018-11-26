@@ -1,3 +1,6 @@
 [submodule "src/btstack"]
 	path = src/btstack
 	url = https://github.com/bluekitchen/btstack.git
+[submodule "tools/felix_ui"]
+	path = tools/felix_ui
+	url = https://github.com/chaturatbs/felix_ui
