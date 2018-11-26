@@ -6,7 +6,43 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
+resources:
+
+- repo: self
+
+queue:
+
+  name: Hosted Ubuntu 1604
+
 steps:
+
 - script: |
-    make
-  displayName: 'make'
+   sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+   sudo apt-get update
+   sudo apt-get install gcc-arm-embedded
+
+  displayName: 'arm gcc install'
+
+
+
+- bash: ./build/ksdk1.1/build.sh
+
+  workingDirectory: build/ksdk1.1
+
+
+
+  failOnStderr: true
+
+
+
+  displayName: 'Build Bash Script'
+
+  env:
+
+    ARMGCC_DIR: /usr
+
+
+
+
+
+
