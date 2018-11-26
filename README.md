@@ -1,4 +1,4 @@
-# Warp [![Build Status](https://dev.azure.com/chaturasamarakoon/WARP/_apis/build/status/FELIX-CI)](https://dev.azure.com/chaturasamarakoon/WARP/_build/latest?definitionId=3) 
+# Warp [![Build Status](https://dev.azure.com/chaturasamarakoon/WARP/_apis/build/status/chaturatbs.Warp-AS276x)](https://dev.azure.com/chaturasamarakoon/WARP/_build/latest?definitionId=2)
 Baseline firmware for the [Warp hardware](https://github.com/physical-computation/Warp-hardware) platform.
 
 
